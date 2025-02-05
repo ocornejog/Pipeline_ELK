@@ -1,5 +1,5 @@
-
-# Kafka Producer and Consumer Setup
+# Data transmission with Kafka 
+## Kafka Producer and Consumer Setup
 
 This guide will help you set up and run Kafka **Producer** and **Consumer** using Docker and Python, including the necessary verifications for Kafka topic creation and container functionality.
 
@@ -147,3 +147,127 @@ docker-compose down
 ### Conclusion
 
 Now you have a working Kafka setup with a Producer fetching data from an API and a Consumer writing it to a file. You can modify this setup for other use cases or scale it as needed.
+
+
+# Data Transformation and Indexing (Logstash)
+
+## 1️⃣ Stop Logstash and Remove Old Configurations
+
+Stop Logstash:
+
+```bash
+sudo systemctl stop logstash
+```
+
+Remove all `.conf` configurations inside Logstash:
+
+```bash
+sudo rm -rf /etc/logstash/conf.d/*
+```
+
+## 2️⃣ Create a New Configuration File
+
+Open a new configuration file:
+
+```bash
+sudo nano /etc/logstash/conf.d/logstash_kafka.conf
+```
+
+Copy and paste this content:
+
+```plaintext
+input {
+  kafka {
+    bootstrap_servers => "localhost:9092"
+    topics => ["air-quality"]
+    codec => "json"
+  }
+}
+
+filter {
+  mutate {
+    convert => {
+      "10nata" => "float"
+      "25nata" => "float"
+      "tnata" => "float"
+      "hynata" => "float"
+    }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["http://localhost:9200"]
+    index => "air_quality"
+    document_id => "%{dateheure}"  # Overwrites data if the same dateheure exists
+  }
+  stdout { codec => rubydebug }
+}
+```
+
+Save and close (CTRL + X, then Y and ENTER).
+
+## 3️⃣ Verify the File Syntax
+
+Before restarting Logstash, check if the `.conf` file has errors:
+
+```bash
+sudo /usr/share/logstash/bin/logstash --config.test_and_exit --path.settings /etc/logstash
+```
+
+If there are no errors, you will see a message like:
+
+```plaintext
+Configuration OK
+```
+
+If there are errors, check the problematic lines and fix them.
+
+## 4️⃣ Restart Logstash
+
+If the configuration is valid, start Logstash again:
+
+```bash
+sudo systemctl start logstash
+```
+
+Enable Logstash to start automatically with the system:
+
+```bash
+sudo systemctl enable logstash
+```
+
+## 5️⃣ Check That Logstash Is Running
+
+Check its status:
+
+```bash
+sudo systemctl status logstash
+```
+
+If everything is fine, you will see something like:
+
+```plaintext
+Active: active (running)
+```
+
+You can also view real-time logs to verify that it is processing data:
+
+```bash
+sudo journalctl -u logstash -f
+```
+
+## 6️⃣ Verify That Data Reaches Elasticsearch
+
+After waiting a few minutes, check if `air_quality` appears in Elasticsearch:
+
+```bash
+curl -X GET "http://localhost:9200/_cat/indices?v"
+```
+
+If you see `air_quality`, it means Logstash is sending data.
+To view some records:
+
+```bash
+curl -X GET "http://localhost:9200/air_quality/_search?pretty"
+```
