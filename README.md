@@ -271,3 +271,283 @@ To view some records:
 ```bash
 curl -X GET "http://localhost:9200/air_quality/_search?pretty"
 ```
+
+# Elastic Search queries with mapping
+
+## Exercise 1: Text Query
+
+### Mapping
+The mapping for the text query does not require special changes, but ensure that fields are correctly defined.
+
+```bash
+curl -X PUT "http://localhost:9200/air_quality?pretty" -H 'Content-Type: application/json' -d'
+{
+  "mappings": {
+    "properties": {
+      "dateheure": {
+        "type": "date"
+      },
+      "10nata": {
+        "type": "float"
+      },
+      "25nata": {
+        "type": "float"
+      },
+      "tnata": {
+        "type": "float"
+      },
+      "hynata": {
+        "type": "float"
+      }
+    }
+  }
+}
+'
+```
+
+### Query
+**Description:** Search for documents where the field "25nata" exactly matches the value 54.
+
+```bash
+curl -X GET "http://localhost:9200/air_quality/_search?pretty" -H 'Content-Type: application/json' -d'
+{
+  "query": {
+    "match": {
+      "25nata": "54"
+    }
+  }
+}
+'
+```
+
+## Exercise 2: Aggregation Query
+
+### Mapping
+The mapping for the aggregation query remains the same as the previous one.
+
+```bash
+curl -X PUT "http://localhost:9200/air_quality?pretty" -H 'Content-Type: application/json' -d'
+{
+  "mappings": {
+    "properties": {
+      "dateheure": {
+        "type": "date"
+      },
+      "10nata": {
+        "type": "float"
+      },
+      "25nata": {
+        "type": "float"
+      },
+      "tnata": {
+        "type": "float"
+      },
+      "hynata": {
+        "type": "float"
+      }
+    }
+  }
+}
+'
+```
+
+### Query
+**Description:** Calculate the average value of the "hynata" field for all documents.
+
+```bash
+curl -X GET "http://localhost:9200/air_quality/_search?pretty" -H 'Content-Type: application/json' -d'
+{
+  "size": 0,
+  "aggs": {
+    "avg_hynata": {
+      "avg": {
+        "field": "hynata"
+      }
+    }
+  }
+}
+'
+```
+
+## Exercise 3: N-gram Query
+
+### Mapping
+For the N-gram query, we convert the "10nata" field to text type and define a custom analyzer.
+
+```bash
+curl -X PUT "http://localhost:9200/air_quality?pretty" -H 'Content-Type: application/json' -d'
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "my_ngram_analyzer": {
+          "tokenizer": "my_ngram_tokenizer"
+        }
+      },
+      "tokenizer": {
+        "my_ngram_tokenizer": {
+          "type": "ngram",
+          "min_gram": 2,
+          "max_gram": 3,
+          "token_chars": [
+            "letter",
+            "digit"
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "dateheure": {
+        "type": "date"
+      },
+      "10nata": {
+        "type": "text",
+        "analyzer": "my_ngram_analyzer"
+      },
+      "25nata": {
+        "type": "float"
+      },
+      "tnata": {
+        "type": "float"
+      },
+      "hynata": {
+        "type": "float"
+      }
+    }
+  }
+}
+'
+```
+
+### Query
+**Description:** Search for documents where the "10nata" field (converted to text) contains N-grams that match "68".
+
+```bash
+curl -X GET "http://localhost:9200/air_quality/_search?pretty" -H 'Content-Type: application/json' -d'
+{
+  "query": {
+    "match": {
+      "10nata": "68"
+    }
+  }
+}
+'
+```
+
+## Exercise 4: Fuzzy Query
+
+### Mapping
+For the fuzzy query, we convert the "10nata" field to text type.
+
+```bash
+curl -X PUT "http://localhost:9200/air_quality?pretty" -H 'Content-Type: application/json' -d'
+{
+  "mappings": {
+    "properties": {
+      "dateheure": {
+        "type": "date"
+      },
+      "10nata": {
+        "type": "text"
+      },
+      "25nata": {
+        "type": "float"
+      },
+      "tnata": {
+        "type": "float"
+      },
+      "hynata": {
+        "type": "float"
+      }
+    }
+  }
+}
+'
+```
+
+### Query
+**Description:** Search for documents where the "10nata" field (converted to text) has values similar to "69", allowing a margin of error (fuzziness).
+
+```bash
+curl -X GET "http://localhost:9200/air_quality/_search?pretty" -H 'Content-Type: application/json' -d'
+{
+  "query": {
+    "fuzzy": {
+      "10nata": {
+        "value": "6,=",
+        "fuzziness": 2
+      }
+    }
+  }
+}
+'
+```
+
+## Exercise 5: Time Series Query
+
+### Mapping
+The mapping for the time series query remains the same as the initial mapping.
+
+```bash
+curl -X PUT "http://localhost:9200/air_quality?pretty" -H 'Content-Type: application/json' -d'
+{
+  "mappings": {
+    "properties": {
+      "dateheure": {
+        "type": "date"
+      },
+      "10nata": {
+        "type": "float"
+      },
+      "25nata": {
+        "type": "float"
+      },
+      "tnata": {
+        "type": "float"
+      },
+      "hynata": {
+        "type": "float"
+      }
+    }
+  }
+}
+'
+```
+
+### Query
+**Description:** Retrieve the average "tnata" field value grouped by hour ("dateheure").
+
+```bash
+curl -X GET "http://localhost:9200/air_quality/_search?pretty" -H 'Content-Type: application/json' -d'
+{
+  "size": 0,
+  "aggs": {
+    "tnata_over_time": {
+      "date_histogram": {
+        "field": "dateheure",
+        "calendar_interval": "year"
+      },
+      "aggs": {
+        "avg_tnata": {
+          "avg": {
+            "field": "tnata"
+          }
+        }
+      }
+    }
+  }
+}
+'
+```
+
+## Final Notes
+
+- **Deleting and recreating the index:** If the `air_quality` index already exists, delete it before applying a new mapping:
+
+  ```bash
+  curl -X DELETE "http://localhost:9200/air_quality?pretty"
+  ```
+
+- **Reindexing:** If you need to reindex data from an existing index, use Elasticsearch's `_reindex` command.
