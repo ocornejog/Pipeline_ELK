@@ -13,7 +13,7 @@ EXPORT_URL = f"{BASE_URL}/MoyJ/export"
 DOWNLOAD_URL = f"{BASE_URL}/download"
 
 # API Key
-API_KEY = "KpwHhI3B6pxFRmm695biio8rV1huKLFt"
+API_KEY = #Your API Key
 
 # Polluants list (from the PDF)
 # POLLUANTS = ["01", "03", "04", "08", "12", "19", "24", "39", "80", "82", "87", "P6", "V4"]  # Add all polluants from the PDF
