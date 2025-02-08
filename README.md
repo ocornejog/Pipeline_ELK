@@ -149,6 +149,211 @@ docker-compose down
 Now you have a working Kafka setup with a Producer fetching data from an API and a Consumer writing it to a file. You can modify this setup for other use cases or scale it as needed.
 
 
+# Create Index Template in Elasticsearch
+
+## 1️⃣ Create the Template JSON File
+
+Create the template file:
+
+```bash
+sudo nano /etc/logstash/templates/template.json
+```
+
+Copy and paste this content:
+
+```bash
+{
+  "index_patterns": ["air_quality*"],
+  "mappings": {
+    "properties": {
+      "@timestamp": { "type": "date" },
+      "@version": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "Date de debut": {
+        "type": "date",
+        "format": "yyyy/MM/dd HH:mm:ss||yyyy/MM/dd||epoch_millis"
+      },
+      "Date de fin": {
+        "type": "date",
+        "format": "yyyy/MM/dd HH:mm:ss||yyyy/MM/dd||epoch_millis"
+      },
+      "Organisme": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "Polluant": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "Reglementaire": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "Zas": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "code qualite": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "code site": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "code zas": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "couverture de donnees": { "type": "float" },
+      "couverture temporelle": { "type": "float" },
+      "discriminant": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "nom site": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        },
+        "analyzer": "ngram_analyzer"
+      },
+      "procedure de mesure": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "taux de saisie": { "type": "float" },
+      "type d'evaluation": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "type d'implantation": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "type d'influence": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "type de valeur": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "unite de mesure": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "valeur": { "type": "float" },
+      "valeur brute": { "type": "float" },
+      "validite": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+## 2️⃣ Create the Index Template in Elasticsearch
+
+Run the following command to create the index template in Elasticsearch:
+
+```bash
+curl -X PUT "http://localhost:9200/_template/air_quality_template" -H 'Content-Type: application/json' -d @/etc/logstash/templates/template.json
+```
+
+## 3️⃣ Verify the Index Template
+Check if the template was created successfully:
+
+```bash
+curl -X GET "http://localhost:9200/_template/air_quality_template?pretty"
+```
+
 # Data Transformation and Indexing (Logstash)
 
 ## 1️⃣ Stop Logstash and Remove Old Configurations
@@ -273,9 +478,114 @@ To view some records:
 curl -X GET "http://localhost:9200/air_quality/_search?pretty"
 ```
 
-# Elastic Search queries with mapping
+# Elasticsearch Queries with Mapping
 
+## Query 1: Text query
 
+```bash
+curl -X GET "http://localhost:9200/air_quality/_count?pretty" -H 'Content-Type: application/json' -d'
+{
+  "query": {
+    "match": {
+      "Organisme": "MADININAIR"
+    }
+  }
+}'
+```
+
+## Query 2: Query including an aggregation
+
+```bash
+curl -X GET "http://localhost:9200/air_quality/_search?pretty" -H 'Content-Type: application/json' -d'
+{
+  "query": {
+    "bool": {
+      "must": [
+        { "match": { "Polluant": "SO2" } },
+        { "match": { "Organisme": "ATMO Normandie" } },
+        {
+          "range": {
+            "Date de debut": {
+              "gte": "2025/02/01 00:00:00",
+              "lt": "2025/02/10 00:00:00"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "average_valeur": {
+      "avg": {
+        "field": "valeur"
+      }
+    }
+  }
+}'
+```
+## Query 3: N-gram query
+
+```bash
+curl -X GET "http://localhost:9200/air_quality/_search?pretty" -H 'Content-Type: application/json' -d'
+{
+  "_source": ["nom site"],
+  "query": {
+    "bool": {
+      "should": [
+        { "match": { "nom site": { "query": "ma mar", "analyzer": "standard" } } },
+        { "match": { "nom site": { "query": "st", "analyzer": "standard" } } }
+      ]
+    }
+  }
+}'
+```
+
+## Query 4: Fuzzy queries
+
+```bash
+curl -X GET "http://localhost:9200/air_quality/_search?pretty" -H 'Content-Type: application/json' -d'
+{
+  "query": {
+    "fuzzy": {
+      "nom site": {
+        "value": "Lago",
+        "fuzziness": 2
+      }
+    }
+  }
+}'
+```
+
+## Query 5: Time series
+
+```bash
+curl -X GET "http://localhost:9200/air_quality/_search?pretty" -H 'Content-Type: application/json' -d'
+{
+  "query": {
+    "range": {
+      "Date de debut": {
+        "gte": "2025/02/01 00:00:00",
+        "lt": "2025/02/10 00:00:00"
+      }
+    }
+  },
+  "aggs": {
+    "daily_values": {
+      "date_histogram": {
+        "field": "Date de debut",
+        "calendar_interval": "hour"
+      },
+      "aggs": {
+        "average_valeur": {
+          "avg": {
+            "field": "valeur"
+          }
+        }
+      }
+    }
+  }
+}'
+```
 
 ## Final Notes
 
