@@ -1,0 +1,129 @@
+{
+  "index_patterns": ["air_quality*"],
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "ngram_analyzer": {
+          "type": "custom",
+          "tokenizer": "ngram_tokenizer",
+          "filter": ["lowercase"]
+        }
+      },
+      "tokenizer": {
+        "ngram_tokenizer": {
+          "type": "ngram",
+          "min_gram": 3,
+          "max_gram": 4,
+          "token_chars": ["letter", "digit"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "@timestamp": {
+        "type": "date"
+      },
+      "Date de debut": {
+        "type": "date",
+        "format": "yyyy/MM/dd HH:mm:ss||yyyy/MM/dd||epoch_millis||strict_date_optional_time"
+      },
+      "Date de fin": {
+        "type": "date",
+        "format": "yyyy/MM/dd HH:mm:ss||yyyy/MM/dd||epoch_millis||strict_date_optional_time"
+      },
+      "Organisme": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          },
+          "ngram": {
+            "type": "text",
+            "analyzer": "ngram_analyzer"
+          }
+        }
+      },
+      "Polluant": {
+        "type": "keyword"
+      },
+      "Reglementaire": {
+        "type": "keyword"
+      },
+      "Zas": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "code qualite": {
+        "type": "keyword"
+      },
+      "code site": {
+        "type": "keyword"
+      },
+      "code zas": {
+        "type": "keyword"
+      },
+      "couverture de donnees": {
+        "type": "float"
+      },
+      "couverture temporelle": {
+        "type": "float"
+      },
+      "discriminant": {
+        "type": "keyword"
+      },
+      "nom site": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          },
+          "ngram": {
+            "type": "text",
+            "analyzer": "ngram_analyzer"
+          }
+        }
+      },
+      "procedure de mesure": {
+        "type": "keyword"
+      },
+      "taux de saisie": {
+        "type": "float"
+      },
+      "type d'evaluation": {
+        "type": "keyword"
+      },
+      "type d'implantation": {
+        "type": "keyword"
+      },
+      "type d'influence": {
+        "type": "keyword"
+      },
+      "type de valeur": {
+        "type": "keyword"
+      },
+      "unite de mesure": {
+        "type": "keyword"
+      },
+      "valeur": {
+        "type": "float"
+      },
+      "valeur brute": {
+        "type": "float"
+      },
+      "validite": {
+        "type": "integer"
+      },
+      "quality_level": {
+        "type": "keyword"
+      }
+    }
+  }
+}

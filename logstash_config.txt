@@ -1,0 +1,59 @@
+input {
+  kafka {
+    bootstrap_servers => "localhost:9092"
+    topics => ["air-quality"]
+    codec => "json"
+    client_id => "logstash_air_quality"
+    group_id => "logstash_air_quality_group"
+    auto_offset_reset => "latest"
+    consumer_threads => 3
+  }
+}
+
+filter {
+  date {
+    match => ["Date de debut",
+    "yyyy/MM/dd HH:mm:ss"]
+    target => "timestamp_debut"
+  }
+  date {
+    match => ["Date de fin",
+    "yyyy/MM/dd HH:mm:ss"]
+    target => "timestamp_fin"
+  }
+  mutate {
+    convert => {
+      "valeur" => "float"
+      "valeur brute" => "float"
+      "taux de saisie" => "float"
+      "couverture temporelle" => "float"
+      "couverture de donnees" => "float"
+      "validite" => "integer"
+    }
+  }
+  mutate {
+    remove_field => ["event", "filename"]
+  }
+  if [code qualite] == "A" {
+    mutate {
+      add_field => { "quality_level" => "high" }
+    }
+  } else if [code qualite] == "R" {
+    mutate {
+      add_field => { "quality_level" => "medium" }
+    }
+  } else {
+    mutate {
+      add_field => { "quality_level" => "low" }
+    }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["http://localhost:9200"]
+    index => "air_quality"
+    document_id => "%{@timestamp}"
+  }
+  stdout { codec => rubydebug }
+}
